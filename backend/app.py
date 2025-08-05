@@ -1,11 +1,12 @@
 import random
 import threading
 import time
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # This allows your React app to make requests
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+  # This allows your React app to make requests
 
 GRID_SIZE = 20
 grid = [[random.choice([0, 1]) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
@@ -74,6 +75,22 @@ def stop_game():
     global game_running
     game_running = False
     return jsonify({'status': 'stopped', 'running': game_running})
+
+@app.route('/api/game-of-life/set', methods=['POST'])
+def set_grid():
+    global grid
+    data = request.get_json()
+    if 'grid' in data:
+        grid = data['grid']
+        return jsonify({'status': 'ok', 'grid': grid})
+    return jsonify({'status': 'error', 'message': 'No grid provided'}), 400
+
+@app.route('/api/game-of-life/clear', methods=['POST'])
+def clear_grid():
+    global grid, game_running
+    game_running = False
+    grid = [[0 for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+    return jsonify({'status': 'cleared', 'grid': grid, 'running': game_running})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
